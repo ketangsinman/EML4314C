@@ -1,0 +1,4 @@
+The header row was set to:
+Time,Desired Position,Filtered Platen Rotation Angle,Command,d,duty cycle,kp,ki,kd
+
+Nonapplicable data columns were deleted.

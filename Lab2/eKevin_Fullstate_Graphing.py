@@ -29,7 +29,7 @@ std_abs_error = np.std(np.abs(error))
 rms_error = np.sqrt((sum(error**2))/len(error))
 
 # Command 
-command = subset["Command"]
+command = np.clip(subset["Command"], -1023, 1023)
 mean_abs_command = np.mean(np.abs(command))
 std_abs_command = np.std(np.abs(command))
 rms_command = np.sqrt((sum(command**2))/len(command))
@@ -40,9 +40,8 @@ max_angle = max(subset["Filtered Platen Rotation Angle"])
 initial_desired_angle = subset["Desired Position"].iloc[1]
 percent_overshoot = (max_angle - final_desired_angle)/(final_desired_angle-initial_desired_angle)*(100)
 
-# Steady State Error
-final_angle = subset["Filtered Platen Rotation Angle"].iloc[-1]
-steady_state_error = abs(final_desired_angle - final_angle)
+# Steady_state_error 
+steady_state_error = final_desired_angle - subset["Filtered Platen Rotation Angle"].iloc[-1] 
 
 # Rise Time:
 # Extract response after second step
@@ -52,8 +51,8 @@ time = response["Time"].to_numpy()
 angle = response["Filtered Platen Rotation Angle"].to_numpy()
 
 # Define 10% and 90% thresholds
-lower_threshold = -final_desired_angle + 2 * final_desired_angle * 0.1
-upper_threshold = -final_desired_angle + 2 * final_desired_angle * 0.9
+lower_threshold = -subset["Filtered Platen Rotation Angle"].iloc[-1] + 2 * subset["Filtered Platen Rotation Angle"].iloc[-1] * 0.1
+upper_threshold = -subset["Filtered Platen Rotation Angle"].iloc[-1] + 2 * subset["Filtered Platen Rotation Angle"].iloc[-1] * 0.9
 
 # Find first crossing of 10%
 idx_10 = np.where(angle >= lower_threshold)[0]
@@ -82,7 +81,6 @@ idx_first = np.where(angle >= lower_threshold)[0]
 
 #Find last crossing into band after exiting the band:
 idx_last = np.where((angle >= upper_threshold) | (angle <= lower_threshold))[-1]
-print(len(idx_last))
 
 if len(idx_first) > 0:
     i_first = idx_first[0]
@@ -120,6 +118,8 @@ plt.scatter(subset["Time"], subset["Filtered Platen Rotation Angle"],
     color="blue", label="Filtered Platen Rotation Angle", s=5)
 plt.scatter(subset["Time"], subset["Desired Position"],
     color="red", label="Desired Position", s=5)
+plt.scatter(subset["Time"], (command*26/1023),
+        color="green", label="Command", s=5)
 plt.xlabel("Time (s)")
 plt.ylabel("Position (deg)")
 plt.title(f"Full State Feedback Kp: {subset["kp"].iloc[0]}, Ki: {subset["ki"].iloc[0]}, Kd: {subset["kd"].iloc[0]}")

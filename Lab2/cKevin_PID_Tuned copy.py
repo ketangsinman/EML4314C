@@ -9,6 +9,7 @@ plt.plot(
     sharex=True,
     sharey=True
 )
+
  # Falling Edge Detection
 desired = subset["Desired Position"].to_numpy()
 time = subset["Time"].to_numpy()
@@ -29,7 +30,7 @@ std_abs_error = np.std(np.abs(error))
 rms_error = np.sqrt((sum(error**2))/len(error))
 
 # Command 
-command = subset["Command"]
+command = np.clip(subset["Command"], -1023, 1023)
 mean_abs_command = np.mean(np.abs(command))
 std_abs_command = np.std(np.abs(command))
 rms_command = np.sqrt((sum(command**2))/len(command))
@@ -40,20 +41,19 @@ max_angle = max(subset["Filtered Platen Rotation Angle"])
 initial_desired_angle = subset["Desired Position"].iloc[1]
 percent_overshoot = (max_angle - final_desired_angle)/(final_desired_angle-initial_desired_angle)*(100)
 
-# Steady State Error
-final_angle = subset["Filtered Platen Rotation Angle"].iloc[-1]
-steady_state_error = abs(final_desired_angle - final_angle)
+# Steady_state_error 
+steady_state_error = final_desired_angle - subset["Filtered Platen Rotation Angle"].iloc[-1] 
 
 # Rise Time:
-# Extract response after second step
+# Extract response after second st~ep
 response = subset[subset["Time"] >= 1].copy()
 
 time = response["Time"].to_numpy()
 angle = response["Filtered Platen Rotation Angle"].to_numpy()
 
 # Define 10% and 90% thresholds
-lower_threshold = -final_desired_angle + 2 * final_desired_angle * 0.1
-upper_threshold = -final_desired_angle + 2 * final_desired_angle * 0.9
+lower_threshold = -subset["Filtered Platen Rotation Angle"].iloc[-1] + 2 * subset["Filtered Platen Rotation Angle"].iloc[-1] * 0.1
+upper_threshold = -subset["Filtered Platen Rotation Angle"].iloc[-1] + 2 * subset["Filtered Platen Rotation Angle"].iloc[-1] * 0.9
 
 # Find first crossing of 10%
 idx_10 = np.where(angle >= lower_threshold)[0]
@@ -82,7 +82,6 @@ idx_first = np.where(angle >= lower_threshold)[0]
 
 #Find last crossing into band after exiting the band:
 idx_last = np.where((angle >= upper_threshold) | (angle <= lower_threshold))[-1]
-print(len(idx_last))
 
 if len(idx_first) > 0:
     i_first = idx_first[0]
@@ -115,28 +114,55 @@ print(f"Rise Time: {rise_time}")
 print(f"Settling Time: {settling_time}")
 print()
 
-# Plot:
-plt.scatter(subset["Time"], subset["Filtered Platen Rotation Angle"],
-    color="blue", label="Filtered Platen Rotation Angle", s=5)
-plt.scatter(subset["Time"], subset["Desired Position"],
-    color="red", label="Desired Position", s=5)
-plt.xlabel("Time (s)")
-plt.ylabel("Position (deg)")
-plt.title(f"Tuned PID Controller Kp: {subset["kp"].iloc[0]}, Ki: {subset["ki"].iloc[0]}, Kd: {subset["kd"].iloc[0]}")
+# # Plot:
+# plt.scatter(subset["Time"], subset["Filtered Platen Rotation Angle"],
+#     color="blue", label="Filtered Platen Rotation Angle", s=5)
+# plt.scatter(subset["Time"], subset["Desired Position"],
+#     color="red", label="Desired Position", s=5)
+# plt.scatter(subset["Time"], (command*26/1023),
+#         color="green", label="Command", s=5)
+# plt.xlabel("Time (s)")
+# plt.ylabel("Position (deg), Command (26 / 1023)")
+# plt.title(f"Tuned PID Controller Kp: {subset["kp"].iloc[0]}, Ki: {subset["ki"].iloc[0]}, Kd: {subset["kd"].iloc[0]}")
 
-plt.text(1.15, 2.5, f"Mean Abs Error: {mean_abs_error:.2f} deg",fontsize=7)
-plt.text(1.15, 0, f"Std Abs Error: {std_abs_error:.2f} deg",fontsize=7)
-plt.text(1.15, -2.5, f"RMS Error: {rms_error:.2f} deg",fontsize=7)
+# plt.text(1.15, 2.5, f"Mean Abs Error: {mean_abs_error:.2f} deg",fontsize=7)
+# plt.text(1.15, 0, f"Std Abs Error: {std_abs_error:.2f} deg",fontsize=7)
+# plt.text(1.15, -2.5, f"RMS Error: {rms_error:.2f} deg",fontsize=7)
 
-plt.text(1.15, -7.5, f"Mean Abs Command: {mean_abs_command:.2f}",fontsize=7)
-plt.text(1.15, -10, f"Std Abs Command: {std_abs_command:.2f}",fontsize=7)
-plt.text(1.15, -12.5, f"RMS Command: {rms_command:.2f}",fontsize=7)
+# plt.text(1.15, -7.5, f"Mean Abs Command: {mean_abs_command:.2f}",fontsize=7)
+# plt.text(1.15, -10, f"Std Abs Command: {std_abs_command:.2f}",fontsize=7)
+# plt.text(1.15, -12.5, f"RMS Command: {rms_command:.2f}",fontsize=7)
 
-plt.text(1.15, -17.5, f"Percent Overshoot: {percent_overshoot:.2f}",fontsize=7)
-plt.text(1.15, -20, f"Steady State Error: {steady_state_error:.2f}",fontsize=7)
+# plt.text(1.15, -17.5, f"Percent Overshoot: {percent_overshoot:.2f}",fontsize=7)
+# plt.text(1.15, -20, f"Steady State Error: {steady_state_error:.2f}",fontsize=7)
     
-plt.text(1.15, -22.5, f"Rise Time: {rise_time:.2f}",fontsize=7)
-plt.text(1.15, -25, f"Settling Time: {settling_time:.2f}",fontsize=7)
+# plt.text(1.15, -22.5, f"Rise Time: {rise_time:.2f}",fontsize=7)
+# plt.text(1.15, -25, f"Settling Time: {settling_time:.2f}",fontsize=7)
+
+
+fig, ax1 = plt.subplots(figsize=(12,6))
+
+ax1.scatter(subset["Time"], subset["Filtered Platen Rotation Angle"],
+    color="blue", label="Filtered Platen Rotation Angle", s=5)
+ax1.scatter(subset["Time"], subset["Desired Position"],
+    color="red", label="Desired Position", s=5)
+
+ax1.set_xlabel('Time (s)')
+ax1.set_ylabel('Position (deg)')
+
+ax2 = ax1.twinx()
+ax2.scatter(subset["Time"], command,
+        color="green", label="Command", s=5)
+ax2.set_ylabel('Command')
+
+plt.title('Tuned PID Controller Kp: 40, Ki: 200, Kd: 3')
+
+# Get legend entries from both axes
+handles1, labels1 = ax1.get_legend_handles_labels()
+handles2, labels2 = ax2.get_legend_handles_labels()
+
+# Combine legends
+ax1.legend(handles1 + handles2, labels1 + labels2, loc="lower right")
 
 plt.tight_layout()
 plt.show()
